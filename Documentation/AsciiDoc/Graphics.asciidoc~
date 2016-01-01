@@ -1,0 +1,467 @@
+Tidy Tree Drawings
+==================
+Authors : Abhishek Kaushik, Kshitij Sharma, Maniteja Nandana
+Computer Graphics IS F311 <manitejanmt@gmail.com>
+:Author Initials: NB
+:toc:
+:icons:
+:numbered:
+
+Introduction
+------------
+Implement three automatic tree drawing algorithms. 
+
+The final positions of the nodes of the tree by the small circles drawn using midpoint algorithm.  
+The edges will be shown as straight lines drawn using Bresenham’s line drawing algorithm.
+
+The implemented algorithms are from the Journal paper “ Tidy Drawings of Trees ” by Charles Wetherell and Alfred Shannon.
+It surveyed two naive tree drawers, formalize aesthetics for tidy trees, and describe two algorithms which draw tidy trees.
+The final algorithm was shown to require the minimum possible paper width.
+
+The aesthetis used were:
+
+. Nodes of a tree at the same height should lie along a straight line, and the straight lines defining the levels should be
+parallel.
+. The left child should be to the left of the parent and the right child should be to the right of the parent
+. The parent should be centered between the sons depending on the number of sons
+
+File structure
+----------------
+
+. *header files*
+.. `line.h`
+... 'Main header file for the line drawing algorithm'
+.. `cirlce.h`
+... 'Main Header file for the circle drawing algorithm'
+.. `generate_tree.h`
+... 'Heder file to generate a random tree given maximum height using coin toss method'
+. *algorithm implementations*
+.. `algo1.cpp`
+... 'Main runner file for the algorithm 1'
+.. `algo2.cpp`
+... 'Main runner file for the algorithm 2'
+.. `algo3.cpp`
+... 'Main runner file for the algorithm 3'
+
+
+Implementations
+---------------
+
+Tree generator
+~~~~~~~~~~~~~~
+
+----------------------------------------------------------------------------------------------------------------------
+Node generate(double density, int limit) { 				// use BFS to generate tree
+	Node* root = new Node(0);
+	int nos = 1;
+	int maxdepth = 0;
+	queue <Node*> Q;
+	Q.push(root);
+	srand(time(NULL));
+	int lim = (int) floor(density * 100);                // get limit ranging from 1 to 100
+	while (!Q.empty()) {
+		Node* temp = Q.front();
+		Q.pop();
+		int d = temp->depth;
+		if (d == limit) continue;                        // max height reached
+		int toss = rand() % 100;
+		if (toss < lim) {                                // If within limit, generate left child
+			temp->left = new Node(d + 1);
+			temp->left->parent = temp;
+			Q.push(temp->left);
+			maxdepth = max(maxdepth, d + 1);
+			nos++;
+		}
+		toss = rand() % 100;
+		if (toss < lim) {                                // If within limit, generate right child
+			temp->right = new Node(d + 1);
+			temp->right->parent = temp;
+			Q.push(temp->right);
+			maxdepth = max(maxdepth, d + 1);
+			nos++;
+		}
+	}
+	return make_pair(root, make_pair(maxdepth, nos));
+}
+
+----------------------------------------------------------------------------------------------------------------------
+
+Drawing algorithms
+~~~~~~~~~~~~~~~~~~
+
+The following are the three algorithms
+
+[blue]#Naive drawer# +
+[blue]#Inorder tree drawer# +
+[blue]#Tidy tree drawer# +
+
+
+Node Structure
+^^^^^^^^^^^^^^
+
+----------------------------------------------------------
+ Status - enum of values NIL FIRST LEFT RIGHT
+ Node - the struct structure for the node
+----------------------------------------------------------
+
+[align="center",options="header"]
+|====================================
+s|depth e|int m|the depth of node
+s|x e|int m|the x coordinate of node
+s|left e|Node m|the left node
+s|right e|Node m|the right node
+s|parent e|Node m|the parent node
+s|modifier e|int m|the modifier value of node for second pass of algo3
+s|status e|Status m|the status of node for first pass of algo3
+|=====================================
+
+
+
+Naive drawer
+^^^^^^^^^^^^
+
+image::
+image::images/algo1.png[Naive drawing]
+
+FUNCTIONS
++++++++++
+
+---------------------------------------------------------------
+
+void Draw(Node* root) {
+/*
+	Inorder traversal to draw the tree
+*/
+    if (root == NULL) return;
+    Draw(root->left);
+    root->x = Next[root->depth]++;			// Increment the next x coordinate for the level before storing value in the node
+    int fromx = root->x * XJUMP + OFFSET;			// OFFSET since x starts from 0, i.e, left corner of window
+    int fromy = WMAX - 10 - YJUMP * root->depth;		// y coordinate based on the depth of node
+    midpointcircle(R, fromx, fromy, WMIN, WMAX);
+    if (root != Tree.first) {
+        int tox = root->parent->x * XJUMP + OFFSET;
+        int toy = WMAX - 10 - YJUMP * root->parent->depth;
+        drawline(fromx, fromy, tox, toy, WMIN, WMAX);
+    }
+    Draw(root->right);
+}
+
+----------------------------------------------------------------
+
+
+PARAMTERERS
++++++++++++
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Description
+s|Tree e|Node m|The struct to store the node details
+s|density e|int m|threshold value for coin toss
+s|maxheight e|int m|the maximum height of the randomly generated tree
+s|XJUMP e|int m|the jump value along X-axis
+s|YJUMP e|int m|the jump value along Y-axis
+s|R e|int m|the module instance is initialized with this name
+s|YMAX e|int m|
+s|WMIN e|int m|the coordinate of minimum corner of the window
+s|WMAX e|int m|the coordinate of maximum corner of the window
+s|OFFSET e|int m|the scaling for proper gap between consecutive nodes
+s|Next e|int[] m|the next x coordinate value for each level
+|==================================
+
+
+SAMPLE
++++++++
+
+===========================================
+ Tree = generate(density, maxheight); // generate a random tree of given maximum height
+ Draw(Tree.first)   // draw the tree
+=============================================
+
+Inorder tree drawer
+^^^^^^^^^^^^^^^^^^^
+image::images/algo2.png[In order drawing]
+
+FUNCTIONS
++++++++++
+
+-----------------------------------------------------------------------------------
+
+void Fetch(Node* root) {
+/*
+	This extra pass is an inorder traversal to store the x values
+*/
+    if (root == NULL) return;
+    Fetch(root->left);
+    root->x = x++;
+    Fetch(root->right);
+}
+
+void Draw(Node* root) {
+/*
+	Inorder traversal to draw the tree
+*/
+    if (root == NULL) return;
+    Draw(root->left);
+    int fromx = root->x * XJUMP;
+    int fromy = WMAX - 10 - YJUMP * root->depth;
+    midpointcircle(R, fromx, fromy, WMIN, WMAX);
+    if (root != Tree.first) {
+        int tox = root->parent->x * XJUMP;
+        int toy = WMAX - 10 - YJUMP * root->parent->depth;
+        drawline(fromx, fromy, tox, toy, WMIN, WMAX);
+    }
+    Draw(root->right);
+}
+
+-----------------------------------------------------------------------------------
+
+
+PARAMETERS
+++++++++++
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Description
+s|Tree e|Node m|The struct to store the node details
+s|density e|int m|threshold value for coin toss
+s|maxheight e|int m|the maximum height of the randomly generated tree
+s|XJUMP e|int m|the jump value along X-axis
+s|YJUMP e|int m|the jump value along Y-axis
+s|R e|int m|the module instance is initialized with this name
+s|YMAX e|int m|
+s|WMIN e|int m|the coordinate of minimum corner of the window
+s|WMAX e|int m|the coordinate of maximum corner of the window
+s|OFFSET e|int m|the scaling for proper gap between consecutive nodes
+s|x e|int m|the next x coordinate value.
+|==================================
+
+
+SAMPLE
+++++++
+
+===========================================
+ Tree = generate(density, maxheight); // generate a random tree of given maximum height
+ Fetch(Tree.first)  // fetch the x coordinates for the nodes
+ Draw(Tree.first)   // draw the tree
+============================================
+
+
+Tidy tree drawer
+^^^^^^^^^^^^^^^^
+In a second pass down the tree, modifier's are cumulated and applied to every node.
+
+During the first pass, which assigns positions as described, a modifier is kept for each level which .
+
+image::images/algo3.png[Tidy drawing]
+
+FUNCTIONS
++++++++++
+
+-----------------------------------------------------------------------------------
+
+
+void Pass1(Node* root) {
+    Node* curr = root;
+    curr->status = FIRST;
+    while (curr) {
+        switch(curr->status) {
+            case FIRST:					
+                curr->status = LEFT;		
+                if (curr->left) {		
+                    curr = curr->left;
+                    curr->status = FIRST;
+                }
+                break;
+                
+            case LEFT:					
+            	curr->status = RIGHT;
+            	if (curr->right) {		
+            		curr = curr->right;
+            		curr->status = FIRST;
+            	}
+            	break;
+            	
+            case RIGHT:					
+            	int h = curr->depth;
+            	int place;
+            	bool isleaf = (!curr->left && !curr->right);
+            	if (isleaf) place = Next[h];
+            	else if (!curr->left) place = curr->right->x - 1;
+            	else if (!curr->right) place = curr->left->x + 1;
+            	else place = (curr->left->x + curr->right->x) >> 1;
+            	Mod[h] = max(Mod[h], Next[h] - place);
+            	if (isleaf) curr->x = place;
+            	else curr->x = place + Mod[h];
+            	Next[h] = curr->x + 2;
+            	curr->modifier = Mod[h];
+            	curr = curr->parent;
+        }
+    }
+}
+
+void Pass2(Node* root) {
+	Node* curr = root;
+	curr->status = FIRST;
+	int sum = 0;
+	while (curr) {
+		switch(curr->status) {
+			case FIRST:
+				curr->x += sum;
+				sum += curr->modifier;
+				curr->status = LEFT;
+				if (curr->left) {
+					curr = curr->left;
+					curr->status = FIRST;
+				}
+				break;
+			
+			case LEFT:
+				curr->status = RIGHT;
+				if (curr->right) {
+					curr = curr->right;
+					curr->status = FIRST;
+				}
+				break;
+			
+			case RIGHT:
+				sum -= curr->modifier;
+				curr = curr->parent;
+		}
+	}
+}
+
+void Draw(Node* root) {
+    if (root == NULL) return;
+    Draw(root->left);
+    int fromx = root->x * XJUMP;
+    int fromy = WMAX - 10 - YJUMP * root->depth;
+    midpointcircle(R, fromx, fromy, WMIN, WMAX);
+    if (root != Tree.first) {
+        int tox = root->parent->x * XJUMP;
+        int toy = WMAX - 10 - YJUMP * root->parent->depth;
+        drawline(fromx, fromy, tox, toy, WMIN, WMAX);
+    }
+    Draw(root->right);
+}
+
+-----------------------------------------------------------------------------------
+
+
+PARAMETERS
+++++++++++
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Description
+s|Tree e|Node m|The struct to store the node details
+s|density e|int m|threshold value for coin toss
+s|maxheight e|int m|the maximum height of the randomly generated tree
+s|XJUMP e|int m|the jump value along X-axis
+s|YJUMP e|int m|the jump value along Y-axis
+s|R e|int m|the module instance is initialized with this name
+s|YMAX e|int m|
+s|WMIN e|int m|the coordinate of minimum corner of the window
+s|WMAX e|int m|the coordinate of maximum corner of the window
+s|OFFSET e|int m|the scaling for proper gap between consecutive nodes
+s|Next e|int[] m|the next x coordinate value for each level
+s|Mod e|int[] m|the modifier value for each level
+|==================================
+
+
+SAMPLE
+++++++
+
+===========================================
+ Tree = generate(density, maxheight); // generate a random tree of given maximum height
+ Pass1(Tree.first);   // the first pass is to store the modifiers
+ Pass2(Tree.first);		// modifiers are cumulated and applied to every node in second pas
+ Draw(Tree.first);		// draw the tree
+============================================
+
+
+
+Challenges faced
+----------------
+
+The major challenges faced in the implementation are:
+
+Task 
+~~~~
+The drawing part in algorithm 2 where there is a need to draw line in in order.
+
+Challenge
+^^^^^^^^^
+For the left child, the line needs to be drawn from the child to parent. +
+For the right child, the line needs to be drawn from the parent to child.
+
+Solution
+^^^^^^^^
+There is a first pass to store the computed x coordinates of the nodes +
+Then the second pass is an inorder walk to draw the lines from the node to the parent, except for root.
+
+
+Experimental tweaks 
+-------------------
+
+In the third algorithm, we tried removing this line where the maximum of modifier and next value of level is taken to decide
+the correct modifier
+
+--------------------------------------------------------------------------------------------------------
+
+	Mod[h] = max(Mod[h], Next[h] - place);
+
+--------------------------------------------------------------------------------------------------------
+
+
+Result
+~~~~~~
+
+Without modification
+^^^^^^^^^^^^^^^^^^^^
+
+image::images/algo3-without_mod.png[without]
+
+
+With modification
+^^^^^^^^^^^^^^^^^
+
+image::images/algo3-with_mod.png[with]
+
+
+Statistical analysis
+--------------------
+
+Plotting the rendering time
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Challenge
+^^^^^^^^^
+Since the rendering time is dependent on hardware configurations of the device, and also factors like page faults and screen
+display frame rate, it is system dependent
+
+Solution
+^^^^^^^^
+We have skipped this part since it would not fit the semantics of statistical analysis which needs to be system independent.
+
+
+Plot the running time of algo
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Plot the graph versus the number of nodes in the tree and running time of algorithms
+
+Challenge
+^^^^^^^^^
+Since the trees are randomly generated based on height and density, the first task would be to count the number of nodes.
+Also, the time/clock functions in C are primitive and cannot profile only specific parts of the code, which is necessary in
+this case since the GL functions should not be part of the profiling time.
+
+Solution
+^^^^^^^^
+We have attempted to plot for some trees, but the results were not totally comprehensible as the underlying contributions
+of individual parts of code is unknown.
+
+
+-------------------
+Author: Abhishek Kaushik, Kshitij Sharma, Maniteja Nandana
+Date: October 2015
+-------------------

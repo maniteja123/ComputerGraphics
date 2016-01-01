@@ -1,0 +1,455 @@
+SystemC Documentation
+=====================
+Department of Electrical Electronics and Communications
+<manitejanmt@gmail.com>
+:Author Initials: NB
+//:toc:
+:icons:
+:numbered:
+
+Introduction
+------------
+
+Implementation and simulation of a MIPS based microprocessor in a high
+level language to simulate the functionalities of different kinds of operations performed on the processor
+
+SystemC is both a system level and hardware level language. It allows modelling at an algorithmic level. It is a library in C plus plus programming language.
+
+Folder structure
+----------------
+
+MIPS
+~~~~
+
+. *cpu*
+.. `cpu.cpp`
+... 'Main runner file for the simulation'
+.. `cpu.h`
+... 'Header files for the implementation'
+.. `mon.h`
+... 'Display file for the microprocessor'
+.. `stim.h`
+... 'Driver file for the microprocessor'
+. *study*
+
+
+SystemC
+-------
+
+SystemC is a C plus plus library
+C plus plus  is an extensible object oriented language
+SystemC extends the C plus plus capabilities by enabling modelling of hardware descriptions.
+
+It provides constructs that describe concepts familiar to a hardware designer  like Modules, Ports and Signals.
+SystemC helps in functional verification of various operations.
+
+It allows designs to be written in a untimed manner.Initially used without regard to the clock scheme in device
+SystemC can be used for multipurposes: +
+
+[blue]#Design implementation# +
+[blue]#Functional Verification# +
+[blue]#Refinement to RTL# +
+
+
+Functional units
+~~~~~~~~~~~~~~~~
+The basic functional units are: +
+
+[blue]#Modules# +
+[blue]#Interfaces# +
+[blue]#Channels# +
+[blue]#Ports# +
+[blue]#Signals# +
+[blue]#Processes# +
+
+modules
+^^^^^^^
+
+Modules are basic building blocks for partitioning a design
+A module typically contains: +
+1. PORTS: through which module communicates with environment +
+2. PROCESSES: describe the functionality of the module +
+3. SIGNALS: internal data and channels for communication within its processes +
+4. HIERARCHIALLY other modules, by extending them +
+
+SC_MODULE
+++++++++++
+
+Declare a definition of the module
+---------------------------------------------------------------
+#define SC_MODULE(user_module_name)  struct user_module_name : sc_module  
+----------------------------------------------------------------
+It simply derives the class  user_module_name from the base class sc_module 
+
+SC_CTOR
++++++++
+
+Modules (classes derived from sc_module) require a constructor +
+Maps functions to processes and decides the sensitivity list +
+The macro *SC_CTOR*  declares a constructor and is provided for convenience +
+Constructor argument must be the name of the module declared +
+During instantiation we need to supply the names of the instance +
+
+
+interfaces
+^^^^^^^^^^
+An interface has a set of member functions +
+It is purely functional, that is it does not provide the implementation of the functions, but only specifies the signature of each function. +
+It specifies the name, parameters and return type of the function but does not specify how the operations are implemented +
+
+channels
+^^^^^^^^
+
+Channels define how the functions are implemented +
+Channels provide the communication between modules +
+Channel also provide the communication ­between processes in a module. +
+Channels may implement one or more interfaces. +
+Different channels may implement same interface in different ways. +
+
+sc_signal
++++++++++
+It is an channel, which acts as a *wire* in Verilog +
+
+ports
+^^^^^
+A port is an object that provides a module with a means for connection and communication with its surroundings. +
+Through a port a module can communicate with one or more channels. +
+A port requires an interface +
+
+sc_in
++++++
+It is a port, which acts as a *in* in Verilog (input) +
+
+sc_out
+++++++
+It is a port which acts as *out* in Verilog (output) +
+
+module instantiaton
+^^^^^^^^^^^^^^^^^^^
+
+The construction of instance(s) (instantiation) of the top level module(s) is done in sc_main() before the sc_start() function is called for the first time. +
+
+Instantiation syntax
+++++++++++++++++++++
+
+--------------------------------------------------
+module_type module_instance_name(“string_name”); 
+--------------------------------------------------
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Description
+s|module_type e|string m|a class derived from sc_module 
+s|module_instance_name e|string m|object name
+s|string_name e|string m|the module instance is initialized with this name
+|==================================
+
+port binding 
+^^^^^^^^^^^^
+
+After a module is instantiated in sc_main(), binding of its ports to channels may occur. +
+There are two different ways to bind ports. +
+
+Named Port Binding
++++++++++++++++++
+
+Named port binding explicitly binds a port to a channel. +
+
+------------------------------------------------------
+module_type module_instance_name(“string_name”); 
+module_instance_name.port_name(channel_name) ; 
+------------------------------------------------------
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Description
+s|module_instance_name e|string m|instance name of the module. 
+s|port_name e|string m|instance name of the port being bound. 
+s|channel_name e|string m|instance name of the channel to which the port is bound
+|==================================
+
+===========================================
+Example: 
+
+ sc_fifo<int> s3(10); // channel instantiation 
+ monitor mon("mon"); // module instantiation 
+ mon.re(s3); // named port binding 
+=============================================
+
+Positional Port Binding
+++++++++++++++++++++++++
+
+Positional port binding implicitly binds a port to a channel by mapping the order listing of channel instances to the order of the declaration of the ports within a module. +
+
+Positional port binding is limited to modules with 64 or fewer ports. +
+
+------------------------------------------------------
+module_type module_instance_name(“string_name”); 
+module_instance_name(channel_name1, channel_name2, ... ) ; 
+------------------------------------------------------
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Description
+s|module_instance_name e|string m|instance name of the module. 
+s|channel_name e|string m|instance name of the channel to which the port is bound to.
+|==================================
+
+===========================================
+Example: 
+
+ sc_fifo<int> s1(10); // channel instantiation 
+ sc_fifo<int> s2(10); // channel instantiation 
+ sc_fifo<int> s3(10); // channel instantiation 
+ adder add("add"); // module instantiation 
+ add(s1, s2, s3); // positional port binding 
+ // s1 bound to first port 
+ // s2 bound to second port 
+ // s3 bound to third port
+=============================================
+
+process
+^^^^^^^^
+
+Functionality is described in processes.  Processes must be contained in a module. +
+A process is a member function of a module. +
+It is registered as a process with the SystemC kernel using a process declaration in the module constructor. +
+Processes are not called directly from user code. +
+A process is invoked based on its *sensitivity list*, which consists of zero, one, or more events, which can change during simulation run time . +
+Processes are not hierarchical. +
+
+SystemC has two kinds of processes: +
+*method processes* +
+*thread processes* +
+  
+Two macros are provided to register a member function as a process: + 
+*SC_METHOD* +
+*SC_THREAD* +
+
+Thread
++++++++
+
+A thread process is invoked only once (during simulation initialization). +
+Executes until a wait()is called where upon the process is suspended. +
+Upon suspension the state of the process is implicitly saved.  +
+The process is resumed based upon its sensitivity list. +
+Its State is then restored and execution of the process resumes from the point of suspension (statement following wait() ). +	
+
+Method
+++++++
+When made to run, the entire body of the method process is executed.  +
+Upon completion it returns control to the SystemC kernel. +
+The process does not maintain its state implicitly, meaning that all local variables are automatic and lose their value when the function returns. +
+The user must manage process state explicitly by using state variables that are data members of the module in which the process resides. +
+A method process may not be explicitly suspended (may not have calls to wait() ). +
+
+
+--------------------------------------------------------------------
+SC_MODULE(my_module) { 
+sc_event c,d;
+void my_thread_proc(); //member function declaration 
+void my_method_proc(); //member function declaration 
+SC_CTOR(my_module) { 
+// thread process declaration and registration 
+SC_THREAD(my_thread_proc); 
+Sensitive << c << d ;
+// method process declaration and registration 
+SC_METHOD(my_method_proc); 
+Sensitive(c);
+// rest of constructor not shown 
+} // rest of module not shown 
+};
+------------------------------------------------------------------
+
+MIPS Microprocessor
+-------------------
+
+Block units
+~~~~~~~~~~~
+
+register file
+^^^^^^^^^^^^^
+
+. A register file consists of a set of registers that can be read and written by supplying a register number to be accessed
+. The register file must be written on a load and an arithmetic-logical instruction
+. Reading a register 
+.. Does not change any state
+.. Need only register number as an input 
+.. Output will be the data contained in that register
+. Writing a register file 
+.. Needs a write signal to be asserted during the clock edge
+.. Determine which register to write using a decoder
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Type |Description
+s|clk e|bool e|input m|clock
+s|RegWrite e|bool e|input m|signal to write into regfile
+s|RegDst e|bool e|input m|signal to check whether destination is a regiser
+s|MemtoReg e|bool e|input m|signal to indicate whether the movement is from data memory to register
+s|wrAddrR e|sc_int e|input m|Address of the destination register
+s|rdAddrS e|sc_int e|input m|Address of the first source register
+s|rdAddrT e|sc_int e|input m|Address of the second source register
+s|rdAddrD e|sc_int e|input m|Address of the destination register
+s|resultR e|sc_int e|input m|Output of the ALU to be written to registerfile
+s|resultM e|sc_int e|input m|Output of the data memory to be written to registerfile
+s|rdDataA e|sc_int e|output m|The value in the first source register
+s|rdDataB e|sc_int e|output m|The value in the second source register
+s|reg e|sc_int[] e|local m|The register file, i.e., an array of registers
+s|rA e|sc_int e|local m|the address of first source register
+s|rB e|sc_int e|local m|the address of second source register
+s|w e|sc_int e|local m|the address of destination register
+|==================================
+
+
+instruction memory
+^^^^^^^^^^^^^^^^^^
+
+. The instruction memory need only provide read access because the datapath does not write instructions.
+. Since the instruction memory only reads, we treat it as combinational element
+. Send the program counter (PC) to the memory that contains the code and fetch the instruction from that memory.
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Type |Description
+s|rdAddrI e|sc_int e|input m|Address of the instruction
+s|rdDataI e|sc_int e|output m|The instruction
+s|reg e|sc_int[] e|local m|the instruction memory
+s|r e|sc_int e|local m|the address of instruction
+|==================================
+
+data memory
+^^^^^^^^^^^
+
+. The data memory must read on a load and write on a store.. 
+. The memory unit is a state element with inputs for the address and the write data, and a single output for the read result. 
+. The data memory must be written on store instructions; hence, it has both read and write control signals, although only one of these may be asserted on any given clock.
+. The memory unit needs a read signal, since, unlike the register file, reading the value of an invalid address can cause problems
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Type |Description
+s|clk e|bool e|input m|clock
+s|MemWrite e|bool e|input m|signal to write into data memory
+s|MemRead e|bool e|input m|signal to read from data memory
+s|MemtoReg e|bool e|input m|signal to indicate whether the movement is from data memory to register
+s|wrDataM e|sc_int e|input m|Data to be written into memory
+s|rdAddrM e|sc_int e|input m|Address of the memory to be read
+s|wrAddrM e|sc_int e|input m|Address of the memory to be written
+s|rdDataM e|sc_int e|output m|Data read from the memory
+s|mem e|sc_int[] e|local m|Data memory
+s|r e|sc_int e|local m|address of the read memory
+s|w e|sc_int e|local m|address of the write memory
+|==================================
+
+
+alu
+^^^
+. The ALU is needed to operate on the value read from the registers  or data memory
+. There is also a 1-bit signal, to indicate if the result is zero. The zero signal is used to implement the branches
+
+[align="center",options="header"]
+|==================================
+|Attribute |DataType |Type |Description
+s|alc e|sc_int e|input m|the alu control input
+s|alop e|sc_int e|input m|the ALU op code
+s|rdDataA e|sc_int e|input m|first input to the ALU
+s|rdDataB e|sc_int e|input m|second input to the ALU
+s|addr e|sc_int e|input m|The 16 bit offset for load/store
+s|ALUSrc e|bool e|input m|Indicates whether the second source is immediate or register value
+s|zero e|bool e|output m|Indicates whether the result of ALU operation is zero
+s|rdAddrM e|sc_int e|output m|The memory to be read for load
+s|rdAddrM e|sc_int e|output m|The memory to be read for load
+s|wrAddrM e|sc_int e|output m|The memory to be read for store
+s|resultR e|sc_int e|output m|the value to be written into destination register for R type
+s|dataA e|sc_int e|local m|first input
+s|dataB e|sc_int e|local m|second input
+s|res e|sc_int e|local m|the result
+|==================================
+
+adder
+^^^^^
+
+. This adder is a combinational circuit, which means that their outputs depend only on the current inputs.
+. Lastly, we will need an adder to increment the PC to the address of the next instruction. 
+. In case of no branching, evaluate PC+4 to access of the instruction memory for the next instruction
+. In case of branching, evaluate the address of  the next instruction, i.e. PC+4+4*(offset)
+
+sign extension component
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+. Sign-extend the 16-bit offset field in the instruction to a 32-bit signed value
+
+----------------------------
+lw $t1,offset_value($t2)
+sw $t1,offset_value($t2)
+----------------------------
+
+shifting unit
+^^^^^^^^^^^^^
+
+. Routing of the signals between input and output that appends 2 zeros to the low-order end of the sign-extended offset field
+. no actual shift hardware is needed, since the amount of the “shift” is constant. 
+. Since we know that the offset was sign-extended from 16 bits, the shift will throw away only “sign bits.”
+
+multiplexer
+^^^^^^^^^^^
+
+RegDst
+++++++
+The register destination number for either the load/store  or register type operations
+
+ALUSrc 
++++++++
+The second ALU operand, whether it comes from the register file(register type)  or immediate value
+
+MemtoReg
+++++++++
+The value fed to register Write Data, whether it comes from the data memory or ALU
+
+PCSrc
++++++
+Whether the PC is to be replaced by PC+4 or PC+4+4*(offset)
+
+RegWrite
+++++++++
+Whether the destination  is a register.
+
+MemWrite
+++++++++
+Whether data is to be written into data memory (store)
+
+MemRead
++++++++
+Whether data is to be read from data memory (load)
+
+
+cpu
+^^^
+
+[align="center",options="header"]
+|==============================================================
+|Attribute |DataType |Type |Description
+s|RegWrite e|bool e|output m|signal to write into regfile
+s|RegDst e|bool e|output m|signal to check whether destination is a regiser
+s|MemtoReg e|bool e|output m|signal to indicate whether the movement is from data memory to register
+s|MemWrite e|bool e|output m|signal to write into data memory
+s|MemRead e|bool e|output m|signal to read from data memory
+s|ALUSrc e|bool e|output m|Indicates whether the second source is immediate or register value
+s|inst e|sc_int e|input m|the complete instruction
+s|alc e|sc_int e|output m|the alu control input
+s|alop e|sc_int e|output m|the ALU op code
+s|addr e|sc_int e|output m|The 16 bit offset for load/store
+s|rs e|sc_int e|output m|rs part of instruction
+s|rt e|sc_int e|output m|rt part of instruction
+s|rd e|sc_int e|output m|rd part of instruction
+s|func e|sc_int e|output m|func part of instruction
+s|op e|sc_int e|output m|op part of instruction
+s|shamt e|sc_int e|output m|shamt part of instruction
+|=============================================================
+
+
+------------------
+Author: Maniteja 
+Date: November 2014
+------------------
